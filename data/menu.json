@@ -1,0 +1,60 @@
+{
+  "updatedAt": "2026-09-03 20:25 KST",
+  "source": "https://khucoop.com/food-menu/",
+  "days": {
+    "2026-09-03": [
+      {
+        "kind": "조식",
+        "name": "고추참치김치덮밥"
+      },
+      {
+        "kind": "중식 A",
+        "name": "순대국밥"
+      },
+      {
+        "kind": "중식 B",
+        "name": "치즈왕돈까스"
+      },
+      {
+        "kind": "중식 C",
+        "name": "돼지갈비찜"
+      },
+      {
+        "kind": "석식 A",
+        "name": "소고기숙주덮밥"
+      }
+    ],
+    "2026-09-04": [
+      {
+        "kind": "조식",
+        "name": "전주콩나물국밥"
+      },
+      {
+        "kind": "중식 A",
+        "name": "돈육짜글이찌개"
+      },
+      {
+        "kind": "중식 B",
+        "name": "새우필라프"
+      },
+      {
+        "kind": "중식 C",
+        "name": "부들지찜닭"
+      },
+      {
+        "kind": "석식 A",
+        "name": "만두순두부찌개"
+      },
+      {
+        "kind": "석식 B",
+        "name": "미니계란말이&케찹"
+      }
+    ]
+  },
+  "checkedAt": "2026-09-03 20:20 KST",
+  "sourceImages": [
+    "https://cdn.imweb.me/thumbnail/20260902/9c52725302522.png",
+    "https://cdn.imweb.me/thumbnail/20260831/992d43febd44e.png",
+    "https://cdn.imweb.me/thumbnail/20260828/5b2a95250041c.png"
+  ]
+}

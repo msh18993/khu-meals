@@ -1,0 +1,10 @@
+{
+  "name": "경희대 오늘 뭐 먹지?",
+  "short_name": "오늘 뭐 먹지",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f2",
+  "theme_color": "#f6f5f2",
+  "lang": "ko",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

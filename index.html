@@ -128,7 +128,7 @@
         return `<section class="period period-${period}"><h3 class="period-heading">${periodNames[period]}</h3><div class="period-cards">${periodMeals.map((meal, i) => `
         <article class="meal" style="animation-delay:${i * 25}ms">
           <div class="meal-kind"><strong>${escapeHtml(meal.kind)}</strong><small>${periodNames[meal.period]}</small></div>
-          <div><p class="meal-name">${escapeHtml(meal.name)}</p><span class="price">${Number(meal.price || menuData.defaultPrice || 5500).toLocaleString('ko-KR')}원</span>${meal.detail?.length ? `<p class="meal-detail">${meal.detail.map(escapeHtml).join(' · ')}</p>` : ''}</div>
+          <div><p class="meal-name">${escapeHtml(meal.name)}</p><span class="price">${Number(meal.period === 'breakfast' ? 1000 : (meal.price || menuData.defaultPrice || 5500)).toLocaleString('ko-KR')}원</span>${meal.detail?.length ? `<p class="meal-detail">${meal.detail.map(escapeHtml).join(' · ')}</p>` : ''}</div>
         </article>`).join('')}</div></section>`;
       }).join('');
     }

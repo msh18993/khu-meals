@@ -44,14 +44,15 @@
     .date-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
     .date-line h2 { margin: 0; font-size: 18px; letter-spacing: -.025em; }
     .date-line span { color: var(--muted); font-size: 13px; }
-    .meal-list { display: grid; gap: 20px; }
-    .period { display:grid; gap:10px; }
+    .meal-list { display: grid; gap: 32px; }
+    .period { display:grid; gap:14px; }
+    .period-cards { display:grid; gap:14px; }
     .period-heading { display:flex; align-items:center; gap:10px; margin:0 2px; font-size:16px; }
     .period-heading::after { content:""; height:1px; flex:1; background:var(--line); }
     .period-breakfast .period-heading { color:#a56a16; }
     .period-lunch .period-heading { color:var(--accent); }
     .period-dinner .period-heading { color:#5264a8; }
-    .meal { display: grid; grid-template-columns: 78px minmax(0,1fr); gap: 16px; align-items: center; min-height: 76px; padding: 15px 17px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); box-shadow: var(--shadow); }
+    .meal { display: grid; grid-template-columns: 78px minmax(0,1fr); gap: 18px; align-items: center; min-height: 88px; padding: 18px 19px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); box-shadow: var(--shadow); }
     .meal-kind { align-self: stretch; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--line); }
     .meal-kind strong { font-size: 13px; color: var(--accent); }
     .meal-kind small { margin-top: 3px; color: var(--muted); font-size: 11px; }
@@ -64,7 +65,7 @@
     .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     @media (min-width: 680px) {
       .shell { padding-top: 54px; }
-      .period-cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .period-cards { grid-template-columns:1fr 1fr; gap:16px; }
       .meal { grid-template-columns: 72px minmax(0,1fr); }
     }
     @media (prefers-reduced-motion: no-preference) {

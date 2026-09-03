@@ -36,26 +36,35 @@
     .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .11em; }
     h1 { margin: 0; font-size: clamp(30px, 8vw, 44px); line-height: 1.05; letter-spacing: -.055em; }
     .source-link { min-width: 44px; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); background: rgba(255,255,255,.6); text-decoration: none; font-size: 19px; }
-    .day-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.5); }
-    .day-tab { min-height: 50px; border: 0; border-radius: 11px; color: var(--muted); background: transparent; font: inherit; font-weight: 750; cursor: pointer; }
+    .day-tabs { display: flex; gap: 6px; padding: 5px; margin: 0 -16px 18px; padding-inline: 16px; overflow-x: auto; scrollbar-width: none; }
+    .day-tabs::-webkit-scrollbar { display: none; }
+    .day-tab { flex: 0 0 72px; min-height: 54px; border: 1px solid var(--line); border-radius: 13px; color: var(--muted); background: rgba(255,255,255,.5); font: inherit; font-weight: 750; cursor: pointer; }
+    .day-tab small { display:block; margin-top:2px; font-size:11px; font-weight:600; }
     .day-tab[aria-selected="true"] { color: var(--ink); background: var(--card); box-shadow: 0 2px 9px rgba(46,42,36,.08); }
     .date-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
     .date-line h2 { margin: 0; font-size: 18px; letter-spacing: -.025em; }
     .date-line span { color: var(--muted); font-size: 13px; }
-    .meal-list { display: grid; gap: 10px; }
+    .meal-list { display: grid; gap: 20px; }
+    .period { display:grid; gap:10px; }
+    .period-heading { display:flex; align-items:center; gap:10px; margin:0 2px; font-size:16px; }
+    .period-heading::after { content:""; height:1px; flex:1; background:var(--line); }
+    .period-breakfast .period-heading { color:#a56a16; }
+    .period-lunch .period-heading { color:var(--accent); }
+    .period-dinner .period-heading { color:#5264a8; }
     .meal { display: grid; grid-template-columns: 78px minmax(0,1fr); gap: 16px; align-items: center; min-height: 76px; padding: 15px 17px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); box-shadow: var(--shadow); }
     .meal-kind { align-self: stretch; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--line); }
     .meal-kind strong { font-size: 13px; color: var(--accent); }
     .meal-kind small { margin-top: 3px; color: var(--muted); font-size: 11px; }
     .meal-name { margin: 0; font-size: 17px; font-weight: 750; line-height: 1.35; letter-spacing: -.02em; overflow-wrap: anywhere; }
-    .meal-detail { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .meal-detail { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .price { display:inline-block; margin-top:5px; color:var(--ink); font-size:13px; font-weight:800; }
     .empty, .error { padding: 38px 22px; border: 1px dashed var(--line); border-radius: 17px; color: var(--muted); background: rgba(255,255,255,.45); text-align: center; line-height: 1.65; }
     footer { margin-top: 18px; color: var(--muted); font-size: 12px; line-height: 1.6; text-align: center; }
     .status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
     .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     @media (min-width: 680px) {
       .shell { padding-top: 54px; }
-      .meal-list { grid-template-columns: 1fr 1fr; }
+      .period-cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
       .meal { grid-template-columns: 72px minmax(0,1fr); }
     }
     @media (prefers-reduced-motion: no-preference) {
@@ -75,10 +84,7 @@
       <a class="source-link" href="https://khucoop.com/food-menu/" target="_blank" rel="noreferrer" aria-label="생협 원문 열기">↗</a>
     </header>
 
-    <nav class="day-tabs" aria-label="날짜 선택">
-      <button class="day-tab" type="button" data-offset="0" aria-selected="true">오늘</button>
-      <button class="day-tab" type="button" data-offset="1" aria-selected="false">내일</button>
-    </nav>
+    <nav class="day-tabs" aria-label="날짜 선택" id="day-tabs"></nav>
 
     <section aria-live="polite">
       <div class="date-line"><h2 id="selected-date">불러오는 중</h2><span id="meal-count"></span></div>
@@ -95,7 +101,7 @@
     const dateLabel = document.querySelector('#selected-date');
     const countLabel = document.querySelector('#meal-count');
     const updatedLabel = document.querySelector('#updated-at');
-    const tabs = [...document.querySelectorAll('.day-tab')];
+    const tabsHost = document.querySelector('#day-tabs');
     const seoulDate = offset => {
       const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date(Date.now() + offset * 86400000));
       const get = type => parts.find(p => p.type === type).value;
@@ -105,27 +111,44 @@
     const escapeHtml = text => String(text ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
     let menuData;
 
-    function render(offset) {
-      const date = seoulDate(offset);
+    const periodNames = { breakfast:'조식', lunch:'중식', dinner:'석식' };
+    function render(date) {
       const meals = menuData?.days?.[date] || [];
       dateLabel.textContent = prettyDate(date);
       countLabel.textContent = meals.length ? `${meals.length}개 메뉴` : '';
-      tabs.forEach(tab => tab.setAttribute('aria-selected', String(Number(tab.dataset.offset) === offset)));
+      [...document.querySelectorAll('.day-tab')].forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.date === date)));
       if (!meals.length) {
         list.innerHTML = '<div class="empty">등록된 메뉴가 없습니다.<br>주말·공휴일이거나 아직 식단이 게시되지 않았어요.</div>';
         return;
       }
-      list.innerHTML = meals.map((meal, i) => `
+      list.innerHTML = Object.keys(periodNames).map(period => {
+        const periodMeals = meals.filter(meal => meal.period === period);
+        if (!periodMeals.length) return '';
+        return `<section class="period period-${period}"><h3 class="period-heading">${periodNames[period]}</h3><div class="period-cards">${periodMeals.map((meal, i) => `
         <article class="meal" style="animation-delay:${i * 25}ms">
-          <div class="meal-kind"><strong>${escapeHtml(meal.kind)}</strong>${meal.price ? `<small>${escapeHtml(meal.price)}</small>` : ''}</div>
-          <div><p class="meal-name">${escapeHtml(meal.name)}</p>${meal.detail ? `<p class="meal-detail">${escapeHtml(meal.detail)}</p>` : ''}</div>
-        </article>`).join('');
+          <div class="meal-kind"><strong>${escapeHtml(meal.kind)}</strong><small>${periodNames[meal.period]}</small></div>
+          <div><p class="meal-name">${escapeHtml(meal.name)}</p><span class="price">${Number(meal.price || menuData.defaultPrice || 5500).toLocaleString('ko-KR')}원</span>${meal.detail?.length ? `<p class="meal-detail">${meal.detail.map(escapeHtml).join(' · ')}</p>` : ''}</div>
+        </article>`).join('')}</div></section>`;
+      }).join('');
     }
-
-    tabs.forEach(tab => tab.addEventListener('click', () => render(Number(tab.dataset.offset))));
     fetch('./data/menu.json', { cache: 'no-store' })
       .then(response => { if (!response.ok) throw new Error(response.status); return response.json(); })
-      .then(data => { menuData = data; updatedLabel.textContent = `마지막 확인 ${data.updatedAt || '알 수 없음'}`; render(0); })
+      .then(data => {
+        menuData = data;
+        const dates = Object.keys(data.days).sort();
+        const today = seoulDate(0);
+        const initial = dates.includes(today) ? today : dates[0];
+        tabsHost.innerHTML = dates.map(date => {
+          const d = new Date(`${date}T12:00:00+09:00`);
+          const weekday = new Intl.DateTimeFormat('ko-KR',{weekday:'short',timeZone:'Asia/Seoul'}).format(d);
+          const md = new Intl.DateTimeFormat('ko-KR',{month:'numeric',day:'numeric',timeZone:'Asia/Seoul'}).format(d);
+          const label = date === today ? '오늘' : weekday;
+          return `<button class="day-tab" type="button" data-date="${date}" aria-selected="${date===initial}">${label}<small>${md}</small></button>`;
+        }).join('');
+        tabsHost.addEventListener('click', event => { const tab=event.target.closest('.day-tab'); if(tab) render(tab.dataset.date); });
+        updatedLabel.textContent = `마지막 확인 ${data.updatedAt || '알 수 없음'}`;
+        render(initial);
+      })
       .catch(() => { dateLabel.textContent = '식단을 불러오지 못했어요'; countLabel.textContent = ''; list.innerHTML = '<div class="error">잠시 후 다시 시도하거나 오른쪽 위 ↗ 버튼으로 생협 원문을 확인해 주세요.</div>'; });
 
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js');

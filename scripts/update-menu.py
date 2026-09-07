@@ -76,13 +76,16 @@ def main():
     # 학생회관 양식: 좌측 레이블 16%, 날짜 열 5개. 각 행 비율은 주간표에서 고정된다.
     xs = [int(w * (0.16 + i * 0.168)) for i in range(6)]
     header = clean_text(img.crop((int(w*.15), int(h*.015), w, int(h*.085))))
-    dates = re.findall(r"(\d{2})\s*월\s*(\d{2})\s*일", header)
+    dates = re.findall(r"(\d{2})\s*월\s*(\d{1,2})\s*일", header)
     if len(dates) < 5:
         dates = re.findall(r"(\d{2})[./-](\d{2})", header)
-    if len(dates) < 5:
-        raise RuntimeError(f"날짜 5개 OCR 실패: {header[:160]!r}")
+    # OCR이 날짜 하나를 놓치면 첫 날짜부터 평일 5일을 복원한다.
+    if len(dates) < 4:
+        raise RuntimeError(f"날짜 OCR 실패: {header[:160]!r}")
     year = datetime.now(ZoneInfo("Asia/Seoul")).year
-    iso = [f"{year}-{int(m):02d}-{int(d):02d}" for m,d in dates[:5]]
+    first = datetime(year, int(dates[0][0]), int(dates[0][1]))
+    from datetime import timedelta
+    iso = [(first + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(5)]
     rows = [
         ("breakfast", "조식", .285, .395, 1000),
         ("lunch", "든든 A", .405, .535, 5500),

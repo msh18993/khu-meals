@@ -78,12 +78,17 @@ def main():
     header = clean_text(img.crop((int(w*.15), int(h*.015), w, int(h*.085))))
     normalized_header = header.replace("O", "0").replace("o", "0")
     compact_header = re.sub(r"\s+", "", normalized_header)
+    compact_header = compact_header.replace("O", "0").replace("o", "0")
     dates = re.findall(r"(\d{1,2})월(\d{1,2})일", compact_header)
     if len(dates) < 5:
         dates = re.findall(r"(\d{1,2})[./-](\d{1,2})", compact_header)
     # OCR이 일부 날짜를 놓치면 첫 날짜부터 평일 5일을 복원한다.
     if not dates:
-        raise RuntimeError(f"날짜 OCR 실패: {header[:160]!r}")
+        loose = re.search(r"(\d{1,2}).{0,3}(\d{2})일", normalized_header)
+        if loose:
+            dates = [(loose.group(1), loose.group(2))]
+        else:
+            raise RuntimeError(f"날짜 OCR 실패: {header[:160]!r}")
     year = datetime.now(ZoneInfo("Asia/Seoul")).year
     first = datetime(year, int(dates[0][0]), int(dates[0][1]))
     from datetime import timedelta

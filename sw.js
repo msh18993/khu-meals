@@ -1,4 +1,4 @@
-const CACHE = 'khu-meals-v4';
+const CACHE = 'khu-meals-v5';
 const ASSETS = ['./', './index.html', './data/menu.json', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))));

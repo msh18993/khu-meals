@@ -22,7 +22,19 @@ def latest_image_url():
     urls = list(dict.fromkeys(u.replace("&amp;", "&") for u in urls))
     if not urls:
         raise RuntimeError("공식 학생회관 식단 이미지를 찾지 못했습니다")
-    return max(urls, key=lambda u: re.search(r'/thumbnail/(\d{8})/', u).group(1))
+    # 페이지 35에는 여러 캠퍼스/식당 이미지가 함께 들어 있다. 세로형 학생회관 표를 고른다.
+    dated = sorted(urls, key=lambda u: re.search(r'/thumbnail/(\d{8})/', u).group(1), reverse=True)
+    candidates = []
+    for url in dated[:8]:
+        try:
+            image = Image.open(BytesIO(fetch(url)))
+            candidates.append((image.height / image.width, image.width * image.height, url))
+        except Exception:
+            pass
+    portrait = [x for x in candidates if x[0] > 1.2]
+    if not portrait:
+        raise RuntimeError("학생회관 세로형 식단 이미지를 찾지 못했습니다")
+    return max(portrait, key=lambda x: (re.search(r'/thumbnail/(\d{8})/', x[2]).group(1), x[1]))[2]
 
 def clean_text(img):
     scale = 2
@@ -63,7 +75,7 @@ def main():
     w, h = img.size
     # 학생회관 양식: 좌측 레이블 16%, 날짜 열 5개. 각 행 비율은 주간표에서 고정된다.
     xs = [int(w * (0.16 + i * 0.168)) for i in range(6)]
-    header = clean_text(img.crop((int(w*.15), 0, w, int(h*.07))))
+    header = clean_text(img.crop((int(w*.15), int(h*.015), w, int(h*.085))))
     dates = re.findall(r"(\d{2})\s*월\s*(\d{2})\s*일", header)
     if len(dates) < 5:
         dates = re.findall(r"(\d{2})[./-](\d{2})", header)

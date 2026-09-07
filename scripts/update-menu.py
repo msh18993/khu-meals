@@ -76,9 +76,10 @@ def main():
     # 학생회관 양식: 좌측 레이블 16%, 날짜 열 5개. 각 행 비율은 주간표에서 고정된다.
     xs = [int(w * (0.16 + i * 0.168)) for i in range(6)]
     header = clean_text(img.crop((int(w*.15), int(h*.015), w, int(h*.085))))
-    dates = re.findall(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일", header)
+    normalized_header = header.replace("O", "0").replace("o", "0")
+    dates = re.findall(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일", normalized_header)
     if len(dates) < 5:
-        dates = re.findall(r"(\d{2})[./-](\d{2})", header)
+        dates = re.findall(r"(\d{1,2})[./-](\d{1,2})", normalized_header)
     # OCR이 일부 날짜를 놓치면 첫 날짜부터 평일 5일을 복원한다.
     if not dates:
         raise RuntimeError(f"날짜 OCR 실패: {header[:160]!r}")

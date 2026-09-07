@@ -79,8 +79,8 @@ def main():
     dates = re.findall(r"(\d{2})\s*월\s*(\d{1,2})\s*일", header)
     if len(dates) < 5:
         dates = re.findall(r"(\d{2})[./-](\d{2})", header)
-    # OCR이 날짜 하나를 놓치면 첫 날짜부터 평일 5일을 복원한다.
-    if len(dates) < 4:
+    # OCR이 일부 날짜를 놓치면 첫 날짜부터 평일 5일을 복원한다.
+    if not dates:
         raise RuntimeError(f"날짜 OCR 실패: {header[:160]!r}")
     year = datetime.now(ZoneInfo("Asia/Seoul")).year
     first = datetime(year, int(dates[0][0]), int(dates[0][1]))

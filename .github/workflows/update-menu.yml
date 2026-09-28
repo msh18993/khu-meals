@@ -2,8 +2,7 @@ name: Update weekly menu
 
 on:
   schedule:
-    - cron: '10 23 * * 0'
-    - cron: '10 0 * * 1'
+    - cron: '10 23 * * *' # 08:10 KST; retry daily if the official image is posted late
   workflow_dispatch:
 
 permissions:
@@ -17,16 +16,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install Korean OCR
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y tesseract-ocr tesseract-ocr-kor
-          pip install pillow pytesseract
+      - name: Install image verifier
+        run: pip install pillow
       - run: python scripts/update-menu.py
-      - name: Commit updated menu
+      - name: Commit official menu image when changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/menu.json
-          git diff --cached --quiet || git commit -m "chore: check weekly meal menu"
-          git push
+          git add data/official-menu.json data/official-menu.png data/official-day-*.png
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: refresh official weekly meal image"
+            git push
+          fi

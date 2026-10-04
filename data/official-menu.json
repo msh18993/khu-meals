@@ -1,10 +1,10 @@
 {
   "source": "https://khucoop.com/35",
-  "sourceImage": "https://cdn.imweb.me/thumbnail/20260928/27f4048564759.png",
-  "imageDate": "2026-09-28",
-  "weekStart": "2026-09-28",
-  "updatedAt": "2026-09-28 10:18 KST",
-  "sha256": "04756dbdaec307007202dfeecc441722617d2c439b1a05bd7687d9c6c4407c9c",
+  "sourceImage": "https://cdn.imweb.me/thumbnail/20261002/e77f95d8a1997.png",
+  "imageDate": "2026-10-02",
+  "weekStart": "2026-10-05",
+  "updatedAt": "2026-10-04 09:14 KST",
+  "sha256": "438b5c710017e9edb08976284a45e826ec7ca9fe8bbd69d49e67eeeaefd22749",
   "layoutVersion": 4,
   "fullImage": "./data/official-menu.png",
   "dayImages": [

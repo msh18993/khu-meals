@@ -89,26 +89,42 @@ def crop_days(raw):
     return output
 
 
-def main():
+def current_cards_match(old, current_week, *, require_hash=False):
+    """Check all five dates and source binding for the supplied week/image.
+
+    Legacy preserved cards may omit a hash; explicit reviewed publication may not.
+    """
+    try:
+        cards = json.loads((DATA / "menu.json").read_text(encoding="utf-8"))
+        days = cards.get("days", {})
+        return (
+            old.get("weekStart") == current_week.isoformat()
+            and isinstance(cards.get("sourceImages"), list)
+            and old.get("sourceImage") in cards["sourceImages"]
+            and (not require_hash or "sourceSha256" in cards)
+            and ("sourceSha256" not in cards or cards["sourceSha256"] == old.get("sha256"))
+            and all(isinstance(days.get((current_week + timedelta(days=day)).isoformat()), list)
+                    and days[(current_week + timedelta(days=day)).isoformat()]
+                    for day in range(5))
+        )
+    except (OSError, ValueError, AttributeError, TypeError):
+        return False
+
+
+def main(*, publish_reviewed=False):
     url, uploaded, raw = find_official_image()
-    image_week = uploaded + timedelta(days=(-uploaded.weekday()) % 7)
+    # Match the review gate's upload hint: Mon–Thu replacements are for this
+    # week; Fri–Sun uploads normally announce next week. Review still checks
+    # the dates printed in the image before --publish-reviewed is used.
+    image_week = uploaded - timedelta(days=uploaded.weekday())
+    if uploaded.weekday() >= 4:
+        image_week += timedelta(days=7)
     today = datetime.now(KST).date()
     current_week = today - timedelta(days=today.weekday())
-    if image_week > current_week:
+    if image_week > current_week and not publish_reviewed:
         print(f"다음 주 식단표 대기: {image_week} (이번 주 {current_week} 이미지 유지)")
         return
     digest = hashlib.sha256(raw).hexdigest()
-    if META.exists():
-        old = json.loads(META.read_text(encoding="utf-8"))
-        if old.get("sha256") == digest and old.get("sourceImage") == url and old.get("layoutVersion") == 4 and FULL.exists() and all(p.exists() for p in DAY_FILES):
-            print(f"변경 없음: {uploaded} 공식 식단 이미지")
-            return
-
-    days = crop_days(raw)
-    DATA.mkdir(exist_ok=True)
-    FULL.write_bytes(raw)
-    for path, content in zip(DAY_FILES, days, strict=True):
-        path.write_bytes(content)
     metadata = {
         "source": SOURCE,
         "sourceImage": url,
@@ -117,12 +133,55 @@ def main():
         "updatedAt": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
         "sha256": digest,
         "layoutVersion": 4,
+    }
+    review_week_allowed = image_week == current_week or (
+        today.weekday() == 6 and image_week == current_week + timedelta(days=7))
+    if publish_reviewed and (not review_week_allowed or not current_cards_match(
+            metadata, image_week, require_hash=True)):
+        raise RuntimeError("검토된 식단의 주간·출처 URL·SHA-256·월~금 메뉴가 공식 이미지와 일치하지 않습니다")
+    if META.exists():
+        old = json.loads(META.read_text(encoding="utf-8"))
+        if (not publish_reviewed and image_week == current_week and current_cards_match(old, current_week)
+                and (old.get("sourceImage") != url or old.get("sha256") != digest)):
+            metadata["status"] = "review_required"
+            pending_path = DATA / "pending-menu.json"
+            try:
+                pending = json.loads(pending_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                pending = {}
+            if (isinstance(pending, dict)
+                    and {key: value for key, value in pending.items() if key != "updatedAt"}
+                    == {key: value for key, value in metadata.items() if key != "updatedAt"}):
+                print(f"공식 식단 변경 검토 대기 유지: {uploaded}")
+                return
+            pending_path.write_text(
+                json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            print(f"공식 식단 변경 검토 대기: {uploaded} (기존 검증 식단 유지)")
+            return
+        if old.get("sha256") == digest and old.get("sourceImage") == url and old.get("layoutVersion") == 4 and FULL.exists() and all(p.exists() for p in DAY_FILES):
+            (DATA / "pending-menu.json").unlink(missing_ok=True)
+            print(f"변경 없음: {uploaded} 공식 식단 이미지")
+            return
+
+    days = crop_days(raw)
+    DATA.mkdir(exist_ok=True)
+    FULL.write_bytes(raw)
+    for path, content in zip(DAY_FILES, days, strict=True):
+        path.write_bytes(content)
+    metadata.update({
         "fullImage": "./data/official-menu.png",
         "dayImages": [f"./data/{path.name}" for path in DAY_FILES],
-    }
+    })
     META.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (DATA / "pending-menu.json").unlink(missing_ok=True)
     print(f"공식 식단 이미지 갱신: {uploaded}, {len(raw)} bytes, 5일 이미지")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--publish-reviewed", action="store_true",
+                        help="Publish only with matching reviewed URL, SHA-256 and all five weekdays")
+    args = parser.parse_args()
+    main(publish_reviewed=args.publish_reviewed)

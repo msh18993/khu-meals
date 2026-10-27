@@ -62,6 +62,7 @@
     .empty, .error { padding: 38px 22px; border: 1px dashed var(--line); border-radius: 17px; color: var(--muted); background: rgba(255,255,255,.45); text-align: center; line-height: 1.65; }
     .official-note { padding: 16px 18px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); color: var(--muted); font-size: 13px; line-height: 1.6; }
     .official-note a { color: var(--accent); font-weight: 750; }
+    #review-notice { margin-bottom: 16px; border-color: #d6b05d; background: #fff6df; color: #69501c; }
     .official-image-link { display: block; text-align: center; }
     .official-image { display: block; width: min(100%, 390px); height: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 12px; background: white; box-shadow: var(--shadow); }
     footer { margin-top: 18px; color: var(--muted); font-size: 12px; line-height: 1.6; text-align: center; }
@@ -92,6 +93,7 @@
     <nav class="day-tabs" aria-label="날짜 선택" id="day-tabs"></nav>
 
     <section aria-live="polite">
+      <div class="official-note" id="review-notice" role="status" hidden></div>
       <div class="date-line"><h2 id="selected-date">불러오는 중</h2><span id="meal-count"></span></div>
       <div class="meal-list" id="meal-list"><div class="empty">이번 주 식단을 불러오고 있어요.</div></div>
     </section>
@@ -184,19 +186,34 @@
       if (!response.ok) throw new Error(response.status);
       return response.json();
     });
-    Promise.allSettled([readJson('./data/menu.json'), readJson('./data/official-menu.json')]).then(([cards, official]) => {
+    Promise.allSettled([readJson('./data/menu.json'), readJson('./data/official-menu.json'), readJson('./data/pending-menu.json')]).then(([cards, official, pending]) => {
       const today = seoulDate(0);
       const weekday = new Date(`${today}T12:00:00+09:00`).getDay();
       const monday = seoulDate(weekday === 0 ? -6 : 1 - weekday);
       const officialIsCurrent = official.status === 'fulfilled' && official.value.weekStart === monday;
       const verifiedCards = cards.status === 'fulfilled' && cards.value.days?.[today]?.length &&
-        (!officialIsCurrent || cards.value.sourceImages?.includes(official.value.sourceImage));
+        (!officialIsCurrent || (cards.value.sourceImages?.includes(official.value.sourceImage) &&
+          (!Object.hasOwn(cards.value, 'sourceSha256') || cards.value.sourceSha256 === official.value.sha256)));
       if (verifiedCards) renderCards(cards.value);
       else if (official.status === 'fulfilled') renderOfficial(official.value);
       else {
         dateLabel.textContent = '식단을 불러오지 못했어요';
         countLabel.textContent = '';
         list.innerHTML = '<div class="error">잠시 후 다시 시도하거나 오른쪽 위 ↗에서 생협 원문을 확인해 주세요.</div>';
+      }
+      if (verifiedCards && official.status === 'fulfilled' && pending.status === 'fulfilled' &&
+          pending.value?.status === 'review_required' && pending.value.weekStart === monday &&
+          (pending.value.sourceImage !== official.value.sourceImage || pending.value.sha256 !== official.value.sha256)) {
+        const notice = document.querySelector('#review-notice');
+        let sourceLink = '';
+        try {
+          const sourceUrl = new URL(pending.value.sourceImage);
+          if (['https:', 'http:'].includes(sourceUrl.protocol)) {
+            sourceLink = ` <a href="${escapeHtml(pending.value.sourceImage)}" target="_blank" rel="noreferrer">변경된 공식 식단표 확인 ↗</a>`;
+          }
+        } catch { /* Invalid URLs must never become active links. */ }
+        notice.innerHTML = `<strong>공식 식단표가 변경되어 다시 확인 중입니다.</strong><br>현재는 이전에 검증한 메뉴 카드를 표시합니다.${sourceLink}`;
+        notice.hidden = false;
       }
     });
 

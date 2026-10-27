@@ -1,9 +1,10 @@
 {
-  "updatedAt": "2026-10-25 09:14 KST",
+  "updatedAt": "2026-10-27 20:25 KST",
   "source": "https://khucoop.com/35",
   "sourceImages": [
-    "https://cdn.imweb.me/thumbnail/20261023/e5d456be8d087.png"
+    "https://cdn.imweb.me/thumbnail/20261026/39651cc0bd059.png"
   ],
+  "sourceSha256": "7da1c96a85edcbcd91a2c585de866a43f5bef2d0c57062c2d47ba8522e308624",
   "venue": "국제캠퍼스 학생회관식당",
   "defaultPrice": 5500,
   "days": {
@@ -141,7 +142,7 @@
       {
         "period": "lunch",
         "kind": "푸짐 C",
-        "name": "등갈비탕",
+        "name": "돼지등뼈탕",
         "price": 5500,
         "detail": [
           "쌀밥",

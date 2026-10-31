@@ -110,7 +110,7 @@ class ReviewGateTests(unittest.TestCase):
         from unittest.mock import patch
         gate = self.load_gate()
         output = io.StringIO()
-        with patch.object(gate, "find_candidate", side_effect=TimeoutError("fixture timeout")):
+        with patch.object(gate, "fetch", return_value=b"{}"), patch.object(gate, "find_candidate", side_effect=TimeoutError("fixture timeout")):
             with contextlib.redirect_stdout(output):
                 gate.main()
         result = json.loads(output.getvalue())

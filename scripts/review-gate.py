@@ -37,14 +37,21 @@ def upload_week(uploaded):
     return monday + timedelta(days=7) if uploaded.weekday() >= 4 else monday
 
 
-def find_candidate(today, fetcher=fetch):
+def find_candidate(today, fetcher=fetch, published=None):
     page = fetcher(SOURCE).decode("utf-8", "replace")
     urls = list(dict.fromkeys(unescape(m.group(0)) for m in IMAGE_RE.finditer(page)))
+    target = target_week(today)
     candidates = []
+    upcoming = []
+    listing = {}
     for url in urls:
         stamp = url.split("/thumbnail/", 1)[1][:8]
         uploaded = datetime.strptime(stamp, "%Y%m%d").date()
-        if not 0 <= (today - uploaded).days <= 14 or upload_week(uploaded) != target_week(today):
+        if not 0 <= (today - uploaded).days <= 14:
+            continue
+        if upload_week(uploaded) == target + timedelta(days=7):
+            upcoming.append((stamp, url))
+        if upload_week(uploaded) != target:
             continue
         raw = fetcher(url)
         if len(raw) < 24 or raw[:8] != b"\x89PNG\r\n\x1a\n" or raw[12:16] != b"IHDR":
@@ -52,12 +59,40 @@ def find_candidate(today, fetcher=fetch):
         width, height = struct.unpack(">II", raw[16:24])
         if width >= 1200 and height / width >= 1.2:
             candidates.append((stamp, width * height, url, raw))
+    if (not candidates and upcoming and isinstance(published, dict)
+            and target == today - timedelta(days=today.weekday())
+            and published.get("weekStart") == target.isoformat()
+            and isinstance(published.get("sourceImage"), str)
+            and IMAGE_RE.fullmatch(published["sourceImage"])):
+        # The source normally removes this week's link when next week is posted.
+        # Re-read the already-reviewed source, rather than trusting stale metadata
+        # or adopting next week's unreviewed image early. decide_review still
+        # requires all dates and both published source hashes to match these bytes.
+        for _, next_url in sorted(upcoming, reverse=True):
+            next_raw = fetcher(next_url)
+            if len(next_raw) < 24 or next_raw[:8] != b"\x89PNG\r\n\x1a\n" or next_raw[12:16] != b"IHDR":
+                continue
+            width, height = struct.unpack(">II", next_raw[16:24])
+            if width < 1200 or height / width < 1.2:
+                continue
+            old_url = published["sourceImage"]
+            old_raw = fetcher(old_url)
+            if len(old_raw) < 24 or old_raw[:8] != b"\x89PNG\r\n\x1a\n" or old_raw[12:16] != b"IHDR":
+                raise RuntimeError("Previously reviewed source is not a valid PNG")
+            old_width, old_height = struct.unpack(">II", old_raw[16:24])
+            if old_width < 1200 or old_height / old_width < 1.2:
+                raise RuntimeError("Previously reviewed source is not a portrait menu")
+            candidates.append((old_url.split("/thumbnail/", 1)[1][:8],
+                               old_width * old_height, old_url, old_raw))
+            listing = {"sourceListingStatus": "advanced_to_next_week", "nextSourceImage": next_url,
+                       "nextWeekStart": (target + timedelta(days=7)).isoformat()}
+            break
     if not candidates:
         raise RuntimeError("No relevant portrait menu image; verify the source's printed dates")
     stamp, _, url, raw = max(candidates)
     return {"source": SOURCE, "sourceImage": url, "sha256": hashlib.sha256(raw).hexdigest(),
             "imageDate": datetime.strptime(stamp, "%Y%m%d").date().isoformat(),
-            "weekStart": target_week(today).isoformat(), "weekStartIsUploadHint": True}
+            "weekStart": target.isoformat(), "weekStartIsUploadHint": True, **listing}
 
 
 def decide_review(cards, candidate, today, official=None):
@@ -106,9 +141,9 @@ def decide_review(cards, candidate, today, official=None):
 def main():
     try:
         today = datetime.now(KST).date()
-        candidate = find_candidate(today)
         cards = json.loads(fetch(CARDS))
         official = json.loads(fetch(OFFICIAL))
+        candidate = find_candidate(today, fetcher=fetch, published=official)
         result = decide_review(cards, candidate, today, official=official)
     except Exception as exc:
         # Wake for a failed read rather than treating an unperformed check as

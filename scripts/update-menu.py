@@ -57,23 +57,24 @@ def find_official_image():
 def crop_days(raw):
     image = Image.open(BytesIO(raw)).convert("RGB")
     width, height = image.size
-    # Preserve the printed dates and all student meals; no menu text is inferred.
-    top = (int(height * .038), int(height * .062))
-    body_top = int(height * .205)
+    # Use full-width table rules, not fixed height fractions or a single colored
+    # pixel: taller menus move breakfast upward and can have white origin notes.
     sample_x = range(40, width - 40, 12)
-    for y in range(int(height * .18), int(height * .25)):
+    rules = []
+    for y in range(int(height * .025), int(height * .95)):
         dark = sum(max(image.getpixel((x, y))) < 125 for x in sample_x)
         if dark > len(sample_x) * .65:
-            body_top = y + 2
-            break
-    # The purple origin-of-ingredients block starts after the final dinner row.
-    origin_top = int(height * .91)
-    for y in range(int(height * .78), int(height * .94)):
-        red, green, blue = image.getpixel((int(width * .05), y))
-        if blue > red + 15 and blue > green + 15 and red > 140:
-            origin_top = y
-            break
-    body = (body_top, origin_top)
+            if rules and y == rules[-1][1] + 1:
+                rules[-1][1] = y
+            else:
+                rules.append([y, y])
+    header_rules = [rule for rule in rules if rule[0] < height * .09]
+    student_starts = [rule for rule in rules if height * .10 < rule[0] < height * .30]
+    student_ends = [rule for rule in rules if height * .70 < rule[0] < height * .92]
+    if len(header_rules) < 2 or not student_starts or not student_ends:
+        raise RuntimeError("식단표의 날짜·학생식당 경계선을 확인하지 못했습니다")
+    top = (header_rules[0][1] + 1, header_rules[1][0])
+    body = (student_starts[0][1] + 1, student_ends[-1][0])
     output = []
     for day in range(5):
         left = int(width * (.159 + day * .1625)) + 2
@@ -132,7 +133,7 @@ def main(*, publish_reviewed=False):
         "weekStart": image_week.isoformat(),
         "updatedAt": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
         "sha256": digest,
-        "layoutVersion": 4,
+        "layoutVersion": 5,
     }
     review_week_allowed = image_week == current_week or (
         today.weekday() == 6 and image_week == current_week + timedelta(days=7))
@@ -158,7 +159,7 @@ def main(*, publish_reviewed=False):
                 json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"공식 식단 변경 검토 대기: {uploaded} (기존 검증 식단 유지)")
             return
-        if old.get("sha256") == digest and old.get("sourceImage") == url and old.get("layoutVersion") == 4 and FULL.exists() and all(p.exists() for p in DAY_FILES):
+        if old.get("sha256") == digest and old.get("sourceImage") == url and old.get("layoutVersion") == 5 and FULL.exists() and all(p.exists() for p in DAY_FILES):
             (DATA / "pending-menu.json").unlink(missing_ok=True)
             print(f"변경 없음: {uploaded} 공식 식단 이미지")
             return

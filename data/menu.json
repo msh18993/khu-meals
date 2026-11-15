@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-11-15 09:14 KST",
+  "updatedAt": "2026-11-15 17:12 KST",
   "source": "https://khucoop.com/35",
   "sourceImages": [
-    "https://cdn.imweb.me/thumbnail/20261113/080eb7441a56c.png"
+    "https://cdn.imweb.me/thumbnail/20261115/a4c06b179e428.png"
   ],
-  "sourceSha256": "8814514d20832a13b284580ae67e2864b593cd688136157538edb56d7223569f",
+  "sourceSha256": "984bfddf94799becfd7074079990b1a4b4dd0e82127539fd3240348b5a213d8f",
   "venue": "국제캠퍼스 학생회관식당",
   "defaultPrice": 5500,
   "days": {
@@ -159,7 +159,7 @@
       {
         "period": "dinner",
         "kind": "든든 A",
-        "name": "소보로강된장비빔밥",
+        "name": "소보로우렁강된장비빔밥",
         "price": 5500,
         "detail": [
           "어묵국",
@@ -171,7 +171,7 @@
       {
         "period": "dinner",
         "kind": "스페셜 B",
-        "name": "소불고기강된장비빔밥",
+        "name": "소불고기우렁된장비빔밥",
         "price": 7000
       }
     ],

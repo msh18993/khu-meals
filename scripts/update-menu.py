@@ -20,6 +20,7 @@ DAY_FILES = [DATA / f"official-day-{day}.png" for day in range(5)]
 HEADERS = {"User-Agent": "Mozilla/5.0 KHU-meals-bot/1.0"}
 IMAGE_RE = re.compile(r"https://cdn\.imweb\.me/thumbnail/(\d{8})/[^\"'<> ]+\.png")
 KST = timezone(timedelta(hours=9))
+LAYOUT_VERSION = 6
 
 
 def fetch(url):
@@ -75,10 +76,26 @@ def crop_days(raw):
         raise RuntimeError("식단표의 날짜·학생식당 경계선을 확인하지 못했습니다")
     top = (header_rules[0][1] + 1, header_rules[1][0])
     body = (student_starts[0][1] + 1, student_ends[-1][0])
+    # Weekday dividers can be gray or dotted. Require support through both
+    # the date header and the student rows, not from text or the sidebar.
+    pixels = image.load()
+    header_y = range(*top)
+    body_y = range(*body, 7)
+    columns = []
+    for x in range(width):
+        if (sum(max(pixels[x, y]) < 225 for y in header_y) >= len(header_y) * .5
+                and sum(max(pixels[x, y]) < 225 for y in body_y) >= len(body_y) * .48):
+            if columns and x == columns[-1][1] + 1:
+                columns[-1][1] = x
+            else:
+                columns.append([x, x])
+    columns = columns[-6:]  # five weekday cells to the right of the sidebar
+    spans = [(first[1] + 1, second[0]) for first, second in zip(columns, columns[1:])]
+    widths = [right - left for left, right in spans]
+    if len(widths) != 5 or min(widths) < width * .12 or max(widths) > min(widths) * 1.08:
+        raise RuntimeError("식단표의 요일 열 경계선을 확인하지 못했습니다")
     output = []
-    for day in range(5):
-        left = int(width * (.159 + day * .1625)) + 2
-        right = int(width * (.159 + (day + 1) * .1625)) - 2
+    for left, right in spans:
         header = image.crop((left, top[0], right, top[1]))
         meals = image.crop((left, body[0], right, body[1]))
         strip = Image.new("RGB", (right - left, header.height + meals.height), "white")
@@ -133,7 +150,7 @@ def main(*, publish_reviewed=False):
         "weekStart": image_week.isoformat(),
         "updatedAt": datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
         "sha256": digest,
-        "layoutVersion": 5,
+        "layoutVersion": LAYOUT_VERSION,
     }
     review_week_allowed = image_week == current_week or (
         today.weekday() == 6 and image_week == current_week + timedelta(days=7))
@@ -159,7 +176,7 @@ def main(*, publish_reviewed=False):
                 json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"공식 식단 변경 검토 대기: {uploaded} (기존 검증 식단 유지)")
             return
-        if old.get("sha256") == digest and old.get("sourceImage") == url and old.get("layoutVersion") == 5 and FULL.exists() and all(p.exists() for p in DAY_FILES):
+        if old.get("sha256") == digest and old.get("sourceImage") == url and old.get("layoutVersion") == LAYOUT_VERSION and FULL.exists() and all(p.exists() for p in DAY_FILES):
             (DATA / "pending-menu.json").unlink(missing_ok=True)
             print(f"변경 없음: {uploaded} 공식 식단 이미지")
             return

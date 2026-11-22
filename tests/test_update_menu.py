@@ -34,6 +34,8 @@ def menu_image(meal):
     draw.text((100, 200), meal, fill="black")
     for y in (24, 35, 120, 500):
         draw.line((0, y, 399, y), fill="black")
+    for x in (0, 60, 128, 196, 264, 332, 399):
+        draw.line((x, 24, x, 500), fill="black")
     output = io.BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
@@ -61,7 +63,7 @@ class UpdateMenuTests(unittest.TestCase):
             "weekStart": "2026-10-26",
             "updatedAt": "2026-10-26 09:00 KST",
             "sha256": hashlib.sha256(self.old_raw).hexdigest(),
-            "layoutVersion": 5,
+            "layoutVersion": updater.LAYOUT_VERSION,
             "fullImage": "./data/official-menu.png",
             "dayImages": [f"./data/{path.name}" for path in self.day_files],
         }
@@ -117,7 +119,7 @@ class UpdateMenuTests(unittest.TestCase):
             "weekStart": "2026-10-26",
             "updatedAt": "2026-10-27 12:00 KST",
             "sha256": hashlib.sha256(self.new_raw).hexdigest(),
-            "layoutVersion": 5,
+            "layoutVersion": updater.LAYOUT_VERSION,
             "status": "review_required",
         })
         self.assertEqual({path.name for path in self.data.iterdir()},
@@ -186,7 +188,7 @@ class UpdateMenuTests(unittest.TestCase):
         self.assertNotEqual(pending["sha256"], self.old["sha256"])
 
     def test_layout_upgrade_rebuilds_day_images_for_identical_reviewed_source(self):
-        self.old["layoutVersion"] = 4
+        self.old["layoutVersion"] = updater.LAYOUT_VERSION - 1
         self.write_json(self.meta_path, self.old)
         self.day_files[0].write_bytes(b"old truncated crop")
         self.cards["sourceSha256"] = self.old["sha256"]
@@ -194,7 +196,7 @@ class UpdateMenuTests(unittest.TestCase):
         self.run_update(url=self.old_url, raw=self.old_raw,
                         uploaded=date(2026, 10, 23), publish_reviewed=True)
         self.assertEqual([path.read_bytes() for path in self.day_files], updater.crop_days(self.old_raw))
-        self.assertEqual(json.loads(self.meta_path.read_text(encoding="utf-8"))["layoutVersion"], 5)
+        self.assertEqual(json.loads(self.meta_path.read_text(encoding="utf-8"))["layoutVersion"], updater.LAYOUT_VERSION)
 
     def test_identical_verified_url_and_digest_needs_no_pending(self):
         self.run_update(url=self.old_url, raw=self.old_raw, uploaded=date(2026, 10, 23))

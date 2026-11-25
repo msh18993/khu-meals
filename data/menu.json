@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-11-22 09:14 KST",
+  "updatedAt": "2026-11-25 12:12 KST",
   "source": "https://khucoop.com/35",
   "sourceImages": [
-    "https://cdn.imweb.me/thumbnail/20261120/55d58f7fb22f1.png"
+    "https://cdn.imweb.me/thumbnail/20261125/b166eb93bbcbc.png"
   ],
-  "sourceSha256": "7097c2cf1eececaa04b38a31017c1f176cbcb4bb79d4c6da00d2f94430e68562",
+  "sourceSha256": "6d41bf3bada2317b3e30a1e0c32c9be3eddb6ab901904a018034c7d1318d543e",
   "venue": "국제캠퍼스 학생회관식당",
   "defaultPrice": 5500,
   "days": {
@@ -221,7 +221,7 @@
         "name": "치킨스테이크갈릭파스타",
         "price": 6500,
         "detail": [
-          "모닝빵",
+          "에그마요모닝빵",
           "오이피클",
           "그린샐러드&드레싱",
           "과즙쥬스"
